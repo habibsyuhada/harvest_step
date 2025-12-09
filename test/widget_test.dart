@@ -11,11 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:harvest_step/main.dart';
 
 void main() {
-  testWidgets('renders pedometer UI', (WidgetTester tester) async {
+  testWidgets('renders navigation with tabs', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('Pedometer Example'), findsOneWidget);
-    expect(find.text('Steps Taken'), findsOneWidget);
-    expect(find.text('Pedestrian Status'), findsOneWidget);
+    expect(find.text('Harvest Step'), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
+    expect(find.text('Energy'), findsOneWidget);
+    expect(find.text('Quests'), findsOneWidget);
   });
 }
