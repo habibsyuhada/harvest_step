@@ -1,136 +1,174 @@
 import "package:flutter/material.dart";
 
-import "../../models/quest.dart";
+import "../../models/todo_task.dart";
 import "../widgets/shared.dart";
 
-class QuestsPage extends StatelessWidget {
-  final int displaySteps;
-  final int stepsPerEnergy;
+class TodoPage extends StatefulWidget {
+  final List<TodoTask> tasks;
+  final int topazPoints;
+  final void Function(String title) onAddTask;
+  final void Function(int index, bool value) onToggleTask;
 
-  const QuestsPage({
+  const TodoPage({
     super.key,
-    required this.displaySteps,
-    required this.stepsPerEnergy,
+    required this.tasks,
+    required this.topazPoints,
+    required this.onAddTask,
+    required this.onToggleTask,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final quests = <Quest>[
-      const Quest(
-        title: "Explorer I",
-        description: "Kumpulkan 500 langkah untuk buka mini-map harian.",
-        reward: "+2 energi",
-        icon: Icons.map_rounded,
-        target: 500,
-      ),
-      const Quest(
-        title: "City Loop",
-        description: "Berjalan 1.5 km (2000 langkah) sebelum jam 6 sore.",
-        reward: "Badge Jalan Sore",
-        icon: Icons.route_rounded,
-        target: 2000,
-      ),
-      Quest(
-        title: "Energy Rush",
-        description: "Capai 5 energi dalam satu hari.",
-        reward: "Loot Box Kasual",
-        icon: Icons.bolt_rounded,
-        target: stepsPerEnergy * 5,
-      ),
-      const Quest(
-        title: "Social Boost",
-        description: "Share progress setelah 3000 langkah.",
-        reward: "+1 reroll quest",
-        icon: Icons.group_rounded,
-        target: 3000,
-      ),
-    ];
+  State<TodoPage> createState() => _TodoPageState();
+}
 
+class _TodoPageState extends State<TodoPage> {
+  final TextEditingController _taskController = TextEditingController();
+
+  @override
+  void dispose() {
+    _taskController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageTitleText("Quests"),
+          const PageTitleText("Todo Task"),
           const SizedBox(height: 8),
           const Text(
-            "Selesaikan quest buat ngumpulin energi dan badge koleksi.",
+            "Checklist harian, setiap selesai task dapet Topaz point.",
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 16),
-          ...quests.map(
-            (q) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _questCard(q),
+          AppCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.check_circle_rounded,
+                      color: Colors.orange),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Topaz point",
+                        style: TextStyle(
+                          color: Colors.black54,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${widget.topazPoints}",
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    _taskController.clear();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  tooltip: "Clear input",
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
+          _taskInput(),
+          const SizedBox(height: 12),
+          ...widget.tasks.asMap().entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _taskTile(entry.key, entry.value),
+                ),
+              ),
         ],
       ),
     );
   }
 
-  Widget _questCard(Quest quest) {
-    final double progress = (displaySteps / quest.target).clamp(0, 1).toDouble();
+  Widget _taskInput() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _taskController,
+            decoration: const InputDecoration(
+              labelText: "Tambah tugas",
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _submitTask(),
+          ),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton(
+          onPressed: _submitTask,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          child: const Text("Tambah"),
+        ),
+      ],
+    );
+  }
+
+  Widget _taskTile(int index, TodoTask task) {
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(quest.icon, color: Colors.teal),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      quest.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      quest.description,
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                quest.reward,
-                style: const TextStyle(
-                  color: Colors.teal,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Checkbox(
+            value: task.isDone,
+            activeColor: Colors.orange,
+            onChanged: (value) {
+              widget.onToggleTask(index, value ?? false);
+              setState(() {});
+            },
           ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade200,
-            color: Colors.teal,
-            minHeight: 10,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "${displaySteps.clamp(0, quest.target)} / ${quest.target} langkah",
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 12,
+          Expanded(
+            child: Text(
+              task.title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                decoration:
+                    task.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                color: task.isDone ? Colors.black45 : Colors.black87,
+              ),
             ),
           ),
+          if (task.isDone)
+            const Icon(
+              Icons.workspace_premium_rounded,
+              color: Colors.orange,
+            ),
         ],
       ),
     );
+  }
+
+  void _submitTask() {
+    final text = _taskController.text.trim();
+    if (text.isEmpty) return;
+    widget.onAddTask(text);
+    _taskController.clear();
+    setState(() {});
   }
 }
