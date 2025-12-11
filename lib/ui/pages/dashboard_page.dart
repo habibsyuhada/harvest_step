@@ -10,6 +10,7 @@ class DashboardPage extends StatefulWidget {
   final double sapphireProgress;
   final int stepsToNextSapphire;
   final int energyPoints;
+  final int hydrationPoints;
   final String status;
   final String? stepError;
   final double waterGoalLiters;
@@ -28,6 +29,7 @@ class DashboardPage extends StatefulWidget {
     required this.sapphireProgress,
     required this.stepsToNextSapphire,
     required this.energyPoints,
+    required this.hydrationPoints,
     required this.status,
     required this.stepError,
     required this.waterGoalLiters,
@@ -61,8 +63,6 @@ class _DashboardPageState extends State<DashboardPage> {
     final waterProgress = (widget.waterIntakeLiters / widget.waterGoalLiters)
         .clamp(0, 1)
         .toDouble();
-    int hydrationPoints = widget.energyPoints - widget.bodyPoints;
-    if (hydrationPoints < 0) hydrationPoints = 0;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +96,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Saphire",
+                      "Total energy",
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 18,
@@ -104,7 +104,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      "${widget.sapphirePoints} pts",
+                      "${widget.energyPoints} pts",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -156,7 +156,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       SectionHeader(
                         title: "Air minum hari ini",
                         subtitle:
-                            "Capai ${widget.waterGoalLiters.toStringAsFixed(1)}L untuk energy point.",
+                            "Capai ${widget.waterGoalLiters.toStringAsFixed(1)}L untuk target hidrasi harian.",
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -191,8 +191,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _waterController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
@@ -245,13 +246,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      _pointChip(
-                        color: Colors.blue.shade50,
-                        icon: Icons.water_drop_rounded,
-                        label: "Energy point",
-                        value: hydrationPoints,
-                      ),
                     ],
                   ),
                 ),
@@ -265,11 +259,54 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _energyProgressCard() {
+    final totalEnergy = widget.energyPoints;
     return AppCard(
       color: Colors.white.withValues(alpha: 0.1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            "Total energy",
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "$totalEnergy pts",
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _pointChip(
+                color: Colors.white.withValues(alpha: 0.12),
+                icon: Icons.directions_walk_rounded,
+                label: "Langkah",
+                value: widget.sapphirePoints,
+              ),
+              _pointChip(
+                color: Colors.white.withValues(alpha: 0.12),
+                icon: Icons.monitor_weight_rounded,
+                label: "Berat badan",
+                value: widget.bodyPoints,
+              ),
+              _pointChip(
+                color: Colors.white.withValues(alpha: 0.12),
+                icon: Icons.water_drop_rounded,
+                label: "Air minum",
+                value: widget.hydrationPoints,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Text(
             "Saphire dari langkah",
             style: TextStyle(
@@ -347,10 +384,7 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -377,7 +411,7 @@ class _DashboardPageState extends State<DashboardPage> {
           const SectionHeader(
             title: "Body weight tracker",
             subtitle:
-                "Pilih target turun/naik berat. Masukkan berat hari ini untuk cek progres dan energy point.",
+                "Pilih target turun/naik berat. Masukkan berat hari ini untuk cek progres.",
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<WeightGoalDirection>(
@@ -385,10 +419,8 @@ class _DashboardPageState extends State<DashboardPage> {
             initialValue: widget.weightGoalDirection,
             items: WeightGoalDirection.values
                 .map(
-                  (goal) => DropdownMenuItem(
-                    value: goal,
-                    child: Text(goal.label),
-                  ),
+                  (goal) =>
+                      DropdownMenuItem(value: goal, child: Text(goal.label)),
                 )
                 .toList(),
             onChanged: (goal) {
@@ -437,13 +469,6 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               _pointChip(
-                color: Colors.orange.shade50,
-                icon: Icons.bolt_rounded,
-                label: "Energy point",
-                value: widget.energyPoints,
-              ),
-              const SizedBox(width: 8),
-              _pointChip(
                 color: Colors.indigo.shade50,
                 icon: Icons.trending_down_rounded,
                 label: "Body progress",
@@ -466,8 +491,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                ...widget.weightEntries
-                    .reversed
+                ...widget.weightEntries.reversed
                     .take(4)
                     .map(
                       (w) => Padding(
@@ -521,17 +545,9 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Icon(icon, color: Colors.teal),
           const SizedBox(width: 6),
-          Text(
-            "$value",
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text("$value", style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.black54),
-          ),
+          Text(label, style: const TextStyle(color: Colors.black54)),
         ],
       ),
     );

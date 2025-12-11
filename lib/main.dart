@@ -48,9 +48,17 @@ class _MyAppState extends State<MyApp> {
   WeightGoalDirection _weightGoalDirection = WeightGoalDirection.lose;
   final List<WellnessLog> _wellnessLogs = [];
   final List<TodoTask> _tasks = [
-    TodoTask(title: "Stretch ringan 5 menit"),
-    TodoTask(title: "Rapikan meja kerja"),
-    TodoTask(title: "Siapkan meal plan"),
+    TodoTask(
+      title: "Stretch ringan 5 menit",
+      category: "Kesehatan",
+      repeat: RepeatCycle.daily,
+    ),
+    TodoTask(
+      title: "Rapikan meja kerja",
+      category: "Rumah",
+      repeat: RepeatCycle.weekly,
+    ),
+    TodoTask(title: "Siapkan meal plan", category: "Kesehatan"),
   ];
   final List<MoneyEntry> _moneyEntries = [];
 
@@ -74,10 +82,12 @@ class _MyAppState extends State<MyApp> {
     return (remainder / _stepsPerEnergy).clamp(0, 1).toDouble();
   }
 
-  int get _energyPoints => _hydrationPoints + _bodyPoints;
+  int get _energyPoints => _sapphirePoints + _hydrationPoints + _bodyPoints;
 
-  List<double> get _weightEntries =>
-      _wellnessLogs.where((l) => l.weight != null).map((l) => l.weight!).toList();
+  List<double> get _weightEntries => _wellnessLogs
+      .where((l) => l.weight != null)
+      .map((l) => l.weight!)
+      .toList();
 
   void onStepCount(StepCount event) {
     final int current = event.steps;
@@ -121,7 +131,8 @@ class _MyAppState extends State<MyApp> {
     bool granted = await Permission.activityRecognition.isGranted;
 
     if (!granted) {
-      granted = await Permission.activityRecognition.request() ==
+      granted =
+          await Permission.activityRecognition.request() ==
           PermissionStatus.granted;
     }
 
@@ -139,8 +150,7 @@ class _MyAppState extends State<MyApp> {
     _prefs = await SharedPreferences.getInstance();
     _baselineSteps = _prefs.getInt('baselineSteps');
     final storedDate = _prefs.getString('baselineDate');
-    _baselineDate =
-        storedDate != null ? DateTime.tryParse(storedDate) : null;
+    _baselineDate = storedDate != null ? DateTime.tryParse(storedDate) : null;
     await _loadWellnessLogs();
 
     _pedestrianStatusStream = Pedometer.pedestrianStatusStream;
@@ -176,9 +186,9 @@ class _MyAppState extends State<MyApp> {
       _wellnessLogs
         ..clear()
         ..addAll(
-          data
-              .whereType<Map<String, dynamic>>()
-              .map((map) => WellnessLog.fromMap(map)),
+          data.whereType<Map<String, dynamic>>().map(
+            (map) => WellnessLog.fromMap(map),
+          ),
         );
     }
     final goalString = _prefs.getString('weightGoalDirection');
@@ -207,15 +217,17 @@ class _MyAppState extends State<MyApp> {
   void _trimWellnessLogs() {
     final cutoff = DateTime.now().subtract(const Duration(days: 30));
     _wellnessLogs.removeWhere(
-      (log) => log.date.isBefore(DateTime(cutoff.year, cutoff.month, cutoff.day)),
+      (log) =>
+          log.date.isBefore(DateTime(cutoff.year, cutoff.month, cutoff.day)),
     );
   }
 
   WellnessLog _getOrCreateTodayLog() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final existingIndex =
-        _wellnessLogs.indexWhere((log) => _isSameDay(log.date, today));
+    final existingIndex = _wellnessLogs.indexWhere(
+      (log) => _isSameDay(log.date, today),
+    );
     if (existingIndex != -1) {
       return _wellnessLogs[existingIndex];
     }
@@ -242,8 +254,9 @@ class _MyAppState extends State<MyApp> {
     }
 
     int bodyPoints = 0;
-    final weightLogs =
-        sortedLogs.where((log) => log.weight != null).toList(growable: false);
+    final weightLogs = sortedLogs
+        .where((log) => log.weight != null)
+        .toList(growable: false);
     for (var i = 1; i < weightLogs.length; i++) {
       final prev = weightLogs[i - 1].weight!;
       final curr = weightLogs[i].weight!;
@@ -300,11 +313,13 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _addTask(String title) {
-    final text = title.trim();
+  void _addTask(TodoTask task) {
+    final text = task.title.trim();
     if (text.isEmpty) return;
     setState(() {
-      _tasks.add(TodoTask(title: text));
+      _tasks.add(
+        TodoTask(title: text, category: task.category, repeat: task.repeat),
+      );
     });
   }
 
@@ -312,14 +327,11 @@ class _MyAppState extends State<MyApp> {
     final entryLabel = label.trim();
     if (entryLabel.isEmpty || amount <= 0) return;
     setState(() {
-      final double? previous =
-          _moneyEntries.isNotEmpty ? _moneyEntries.last.amount : null;
+      final double? previous = _moneyEntries.isNotEmpty
+          ? _moneyEntries.last.amount
+          : null;
       _moneyEntries.add(
-        MoneyEntry(
-          label: entryLabel,
-          amount: amount,
-          date: DateTime.now(),
-        ),
+        MoneyEntry(label: entryLabel, amount: amount, date: DateTime.now()),
       );
       if (previous != null && amount > previous) {
         _diamondPoints++;
@@ -348,6 +360,7 @@ class _MyAppState extends State<MyApp> {
                 sapphireProgress: _sapphireProgress,
                 stepsToNextSapphire: _stepsToNextSapphire,
                 energyPoints: _energyPoints,
+                hydrationPoints: _hydrationPoints,
                 status: _status,
                 stepError: _stepError,
                 waterGoalLiters: _waterGoalLiters,
@@ -415,5 +428,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
-
