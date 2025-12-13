@@ -2,19 +2,29 @@ import "package:flutter/material.dart";
 
 import "../../models/todo_task.dart";
 import "../widgets/shared.dart";
+import "create_task_page.dart";
+import "category_manage_page.dart";
 
 class TodoPage extends StatefulWidget {
   final List<TodoTask> tasks;
-  final int topazPoints;
+  final int achievementPoints;
+  final List<String> categories;
   final void Function(TodoTask task) onAddTask;
+  final void Function(int index, TodoTask task) onUpdateTask;
+  final void Function(int index) onDeleteTask;
   final void Function(int index, bool value) onToggleTask;
+  final void Function(List<String> categories) onCategoriesChanged;
 
   const TodoPage({
     super.key,
     required this.tasks,
-    required this.topazPoints,
+    required this.achievementPoints,
+    required this.categories,
     required this.onAddTask,
+    required this.onUpdateTask,
+    required this.onDeleteTask,
     required this.onToggleTask,
+    required this.onCategoriesChanged,
   });
 
   @override
@@ -22,44 +32,19 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> {
-  final TextEditingController _taskController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController(
-    text: "Umum",
-  );
-  String _selectedCategoryFilter = "Semua";
-  RepeatCycle _selectedRepeat = RepeatCycle.none;
-
-  @override
-  void dispose() {
-    _taskController.dispose();
-    _categoryController.dispose();
-    super.dispose();
-  }
+  String _selectedCategoryFilter = "All";
 
   @override
   Widget build(BuildContext context) {
-    final categories = <String>{
-      "Semua",
-      "Umum",
+    final allCategories = <String>{
+      "All",
+      ...widget.categories,
       ...widget.tasks.map((t) => _categoryOf(t)),
     };
-    final recurringTasks = widget.tasks
+    final filteredTasks = widget.tasks
         .asMap()
         .entries
-        .where(
-          (entry) =>
-              _repeatOf(entry.value) != RepeatCycle.none &&
-              _matchesFilter(entry.value),
-        )
-        .toList();
-    final oneTimeTasks = widget.tasks
-        .asMap()
-        .entries
-        .where(
-          (entry) =>
-              _repeatOf(entry.value) == RepeatCycle.none &&
-              _matchesFilter(entry.value),
-        )
+        .where((entry) => _matchesFilter(entry.value))
         .toList();
 
     return SingleChildScrollView(
@@ -70,7 +55,7 @@ class _TodoPageState extends State<TodoPage> {
           const PageTitleText("Todo Task"),
           const SizedBox(height: 8),
           const Text(
-            "Checklist harian, setiap selesai task dapet Topaz point.",
+            "Daily checklist, complete tasks to earn Achievement points.",
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 16),
@@ -94,12 +79,12 @@ class _TodoPageState extends State<TodoPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Topaz point",
+                        "Achievement point",
                         style: TextStyle(color: Colors.black54, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${widget.topazPoints}",
+                        "${widget.achievementPoints}",
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -108,141 +93,95 @@ class _TodoPageState extends State<TodoPage> {
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    _taskController.clear();
-                    setState(() {});
-                  },
-                  icon: const Icon(Icons.restart_alt_rounded),
-                  tooltip: "Clear input",
-                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          _taskInputCard(),
+          _actionButtons(),
           const SizedBox(height: 14),
-          _categoryFilter(categories.toList()),
-          if (recurringTasks.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _recurringSection(recurringTasks),
-          ],
+          _categoryFilter(allCategories.toList()),
           const SizedBox(height: 12),
-          _tasksSection(oneTimeTasks),
+          _tasksSection(filteredTasks),
         ],
       ),
     );
   }
 
-  Widget _taskInputCard() {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: "Tambah tugas",
-            subtitle: "Kategori + repeat biar rapi dan terjadwal.",
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _taskController,
-            decoration: const InputDecoration(
-              labelText: "Nama tugas",
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _submitTask(),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _categoryController,
-            decoration: const InputDecoration(
-              labelText: "Kategori",
-              helperText: "Contoh: Kesehatan, Pekerjaan, Rumah",
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _submitTask(),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final cat in {
-                "Umum",
-                "Kesehatan",
-                "Pekerjaan",
-                "Rumah",
-                "Pribadi",
-              })
-                ChoiceChip(
-                  label: Text(cat),
-                  selected:
-                      _categoryController.text.trim().toLowerCase() ==
-                      cat.toLowerCase(),
-                  onSelected: (_) {
-                    _categoryController.text = cat;
-                    setState(() {});
-                  },
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<RepeatCycle>(
-            initialValue: _selectedRepeat,
-            decoration: const InputDecoration(
-              labelText: "Repeat",
-              border: OutlineInputBorder(),
-            ),
-            items: RepeatCycle.values
-                .map(
-                  (repeat) => DropdownMenuItem(
-                    value: repeat,
-                    child: Text(repeat.label),
+  Widget _actionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => CreateTaskPage(
+                    categories: widget.categories,
+                    onSubmit: widget.onAddTask,
                   ),
-                )
-                .toList(),
-            onChanged: (repeat) {
-              if (repeat == null) return;
-              setState(() => _selectedRepeat = repeat);
-            },
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: _submitTask,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
                 ),
+              );
+              if (result != null) {
+                setState(() {});
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              icon: const Icon(Icons.add_task_rounded),
-              label: const Text("Tambah"),
             ),
+            icon: const Icon(Icons.add_task_rounded),
+            label: const Text("Add Task"),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => CategoryManagePage(
+                    categories: widget.categories,
+                    onCategoriesChanged: widget.onCategoriesChanged,
+                  ),
+                ),
+              );
+              setState(() {});
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.teal,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              side: const BorderSide(color: Colors.teal),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.category_rounded),
+            label: const Text("Manage Categories"),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _categoryFilter(List<String> categories) {
     final uniqueCategories = categories.toSet().toList()
       ..sort(
-        (a, b) => a == "Semua"
+        (a, b) => a == "All"
             ? -1
-            : b == "Semua"
+            : b == "All"
             ? 1
             : a.toLowerCase().compareTo(b.toLowerCase()),
       );
-    if (uniqueCategories.isEmpty) uniqueCategories.add("Semua");
+    if (uniqueCategories.isEmpty) uniqueCategories.add("All");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          "Filter berdasarkan kategori",
+          "Filter by category",
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
@@ -267,41 +206,12 @@ class _TodoPageState extends State<TodoPage> {
     );
   }
 
-  Widget _recurringSection(List<MapEntry<int, TodoTask>> entries) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const SectionHeader(
-              title: "Tugas berulang",
-              subtitle: "Tugas rutin harian/mingguan.",
-            ),
-            TextButton.icon(
-              onPressed: _resetRecurringStatus,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text("Reset selesai"),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ...entries.map(
-          (entry) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _taskTile(entry.key, entry.value),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _tasksSection(List<MapEntry<int, TodoTask>> entries) {
     if (entries.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Text(
-          "Belum ada tugas di kategori ini.",
+          "No tasks in this category yet.",
           style: TextStyle(color: Colors.black54),
         ),
       );
@@ -311,8 +221,8 @@ class _TodoPageState extends State<TodoPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SectionHeader(
-          title: "Semua tugas",
-          subtitle: "Checklist harian dan tugas satu kali.",
+          title: "All tasks",
+          subtitle: "Daily checklist and one-time tasks.",
         ),
         const SizedBox(height: 8),
         ...entries.map(
@@ -326,12 +236,32 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   Widget _taskTile(int index, TodoTask task) {
-    final repeat = _repeatOf(task);
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CreateTaskPage(
+                task: task,
+                categories: widget.categories,
+                onSubmit: (updatedTask) {
+                  widget.onUpdateTask(index, updatedTask);
+                },
+                onDelete: () {
+                  Navigator.of(context).pop();
+                  _confirmDeleteTask(index, task);
+                },
+              ),
+            ),
+          );
+          if (result != null) {
+            setState(() {});
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AppCard(
+          child: Row(
             children: [
               Checkbox(
                 value: task.isDone,
@@ -342,30 +272,15 @@ class _TodoPageState extends State<TodoPage> {
                 },
               ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        decoration: task.isDone
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                        color: task.isDone ? Colors.black45 : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        _infoBadge(Icons.folder_rounded, _categoryOf(task)),
-                        if (repeat != RepeatCycle.none)
-                          _infoBadge(Icons.refresh_rounded, repeat.label),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  task.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    decoration: task.isDone
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
+                    color: task.isDone ? Colors.black45 : Colors.black87,
+                  ),
                 ),
               ),
               if (task.isDone)
@@ -375,71 +290,46 @@ class _TodoPageState extends State<TodoPage> {
                 ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  void _submitTask() {
-    final text = _taskController.text.trim();
-    final category = _categoryController.text.trim().isEmpty
-        ? "Umum"
-        : _categoryController.text.trim();
-    if (text.isEmpty) return;
-    widget.onAddTask(
-      TodoTask(title: text, category: category, repeat: _selectedRepeat),
-    );
-    _taskController.clear();
-    _categoryController.text = category;
-    setState(() {});
-  }
-
-  bool _matchesFilter(TodoTask task) {
-    final category = _categoryOf(task).toLowerCase();
-    return _selectedCategoryFilter.toLowerCase() == "semua" ||
-        category == _selectedCategoryFilter.toLowerCase();
-  }
-
-  void _resetRecurringStatus() {
-    final entries = widget.tasks.asMap().entries.where(
-      (entry) =>
-          _repeatOf(entry.value) != RepeatCycle.none && entry.value.isDone,
-    );
-    for (final entry in entries) {
-      widget.onToggleTask(entry.key, false);
-    }
-    setState(() {});
-  }
-
-  Widget _infoBadge(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.orange, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+  void _confirmDeleteTask(int index, TodoTask task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Task"),
+        content: Text("Are you sure you want to delete task \"${task.title}\"?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onDeleteTask(index);
+              Navigator.of(context).pop();
+              setState(() {});
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
           ),
         ],
       ),
     );
   }
 
-  String _categoryOf(TodoTask task) {
-    final value = task.category ?? "Umum";
-    if (value.trim().isEmpty) return "Umum";
-    return value;
+
+  bool _matchesFilter(TodoTask task) {
+    final category = _categoryOf(task).toLowerCase();
+    return _selectedCategoryFilter.toLowerCase() == "all" ||
+        category == _selectedCategoryFilter.toLowerCase();
   }
 
-  RepeatCycle _repeatOf(TodoTask task) {
-    final repeat = task.repeat ?? RepeatCycle.none;
-    return repeat;
+  String _categoryOf(TodoTask task) {
+    final value = task.category ?? "General";
+    if (value.trim().isEmpty) return "General";
+    return value;
   }
 }

@@ -43,23 +43,24 @@ class _MyAppState extends State<MyApp> {
   double _waterIntakeLiters = 0;
   int _hydrationPoints = 0;
   int _bodyPoints = 0;
-  int _topazPoints = 0;
-  int _diamondPoints = 0;
+  int _achievementPoints = 0;
+  int _goldPoints = 0;
   WeightGoalDirection _weightGoalDirection = WeightGoalDirection.lose;
   final List<WellnessLog> _wellnessLogs = [];
   final List<TodoTask> _tasks = [
     TodoTask(
-      title: "Stretch ringan 5 menit",
-      category: "Kesehatan",
+      title: "Light stretch 5 minutes",
+      category: "Health",
       repeat: RepeatCycle.daily,
     ),
     TodoTask(
-      title: "Rapikan meja kerja",
-      category: "Rumah",
+      title: "Tidy up work desk",
+      category: "Home",
       repeat: RepeatCycle.weekly,
     ),
-    TodoTask(title: "Siapkan meal plan", category: "Kesehatan"),
+    TodoTask(title: "Prepare meal plan", category: "Health"),
   ];
+  List<String> _categories = ["General", "Health", "Work", "Home", "Personal"];
   final List<MoneyEntry> _moneyEntries = [];
 
   static const int _stepsPerEnergy = 25;
@@ -70,19 +71,19 @@ class _MyAppState extends State<MyApp> {
     initPlatformState();
   }
 
-  int get _sapphirePoints => _displaySteps ~/ _stepsPerEnergy;
+  int get _energyPointsFromSteps => _displaySteps ~/ _stepsPerEnergy;
 
-  int get _stepsToNextSapphire {
+  int get _stepsToNextEnergy {
     final remainder = _displaySteps % _stepsPerEnergy;
     return remainder == 0 ? 0 : _stepsPerEnergy - remainder;
   }
 
-  double get _sapphireProgress {
+  double get _energyProgress {
     final remainder = _displaySteps % _stepsPerEnergy;
     return (remainder / _stepsPerEnergy).clamp(0, 1).toDouble();
   }
 
-  int get _energyPoints => _sapphirePoints + _hydrationPoints + _bodyPoints;
+  int get _energyPoints => _energyPointsFromSteps + _hydrationPoints + _bodyPoints;
 
   List<double> get _weightEntries => _wellnessLogs
       .where((l) => l.weight != null)
@@ -307,7 +308,9 @@ class _MyAppState extends State<MyApp> {
   void _toggleTask(int index, bool value) {
     setState(() {
       if (!_tasks[index].isDone && value) {
-        _topazPoints++;
+        _achievementPoints++;
+      } else if (_tasks[index].isDone && !value) {
+        _achievementPoints = (_achievementPoints - 1).clamp(0, double.infinity).toInt();
       }
       _tasks[index].isDone = value;
     });
@@ -318,23 +321,81 @@ class _MyAppState extends State<MyApp> {
     if (text.isEmpty) return;
     setState(() {
       _tasks.add(
-        TodoTask(title: text, category: task.category, repeat: task.repeat),
+        TodoTask(
+          title: text,
+          category: task.category,
+          repeat: task.repeat,
+          weeklyDays: task.weeklyDays,
+          checklist: task.checklist,
+        ),
       );
     });
   }
 
-  void _addMoneyEntry(String label, double amount) {
+  void _updateTask(int index, TodoTask task) {
+    if (index < 0 || index >= _tasks.length) return;
+    final text = task.title.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _tasks[index] = TodoTask(
+        title: text,
+        category: task.category,
+        repeat: task.repeat,
+        weeklyDays: task.weeklyDays,
+        checklist: task.checklist,
+        isDone: _tasks[index].isDone,
+        createdAt: _tasks[index].createdAt,
+      );
+    });
+  }
+
+  void _deleteTask(int index) {
+    if (index < 0 || index >= _tasks.length) return;
+    setState(() {
+      _tasks.removeAt(index);
+    });
+  }
+
+  void _updateCategories(List<String> categories) {
+    setState(() {
+      _categories = categories;
+    });
+  }
+
+  void _addMoneyEntry(String label, double amount, MoneyType type) {
     final entryLabel = label.trim();
     if (entryLabel.isEmpty || amount <= 0) return;
     setState(() {
-      final double? previous = _moneyEntries.isNotEmpty
-          ? _moneyEntries.last.amount
-          : null;
+      // Calculate current balance
+      final currentIncome = _moneyEntries
+          .where((e) => e.type == MoneyType.income)
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      final currentExpense = _moneyEntries
+          .where((e) => e.type == MoneyType.expense)
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      final currentBalance = currentIncome - currentExpense;
+
       _moneyEntries.add(
-        MoneyEntry(label: entryLabel, amount: amount, date: DateTime.now()),
+        MoneyEntry(
+          label: entryLabel,
+          amount: amount,
+          type: type,
+          date: DateTime.now(),
+        ),
       );
-      if (previous != null && amount > previous) {
-        _diamondPoints++;
+
+      // Calculate new balance
+      final newIncome = _moneyEntries
+          .where((e) => e.type == MoneyType.income)
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      final newExpense = _moneyEntries
+          .where((e) => e.type == MoneyType.expense)
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      final newBalance = newIncome - newExpense;
+
+      // Give gold point if balance increases
+      if (newBalance > currentBalance) {
+        _goldPoints++;
       }
     });
   }
@@ -356,9 +417,9 @@ class _MyAppState extends State<MyApp> {
             children: [
               DashboardPage(
                 displaySteps: _displaySteps,
-                sapphirePoints: _sapphirePoints,
-                sapphireProgress: _sapphireProgress,
-                stepsToNextSapphire: _stepsToNextSapphire,
+                energyPointsFromSteps: _energyPointsFromSteps,
+                energyProgress: _energyProgress,
+                stepsToNextEnergy: _stepsToNextEnergy,
                 energyPoints: _energyPoints,
                 hydrationPoints: _hydrationPoints,
                 status: _status,
@@ -374,23 +435,27 @@ class _MyAppState extends State<MyApp> {
               ),
               TodoPage(
                 tasks: _tasks,
-                topazPoints: _topazPoints,
+                achievementPoints: _achievementPoints,
+                categories: _categories,
                 onAddTask: _addTask,
+                onUpdateTask: _updateTask,
+                onDeleteTask: _deleteTask,
                 onToggleTask: _toggleTask,
+                onCategoriesChanged: _updateCategories,
               ),
               MoneyPage(
                 entries: _moneyEntries,
                 onAddEntry: _addMoneyEntry,
-                diamondPoints: _diamondPoints,
+                goldPoints: _goldPoints,
               ),
               const GamePlaceholderPage(),
               ProfilePage(
                 displaySteps: _displaySteps,
-                sapphirePoints: _sapphirePoints,
+                energyPointsFromSteps: _energyPointsFromSteps,
                 energyPoints: _energyPoints,
                 status: _status,
-                topazPoints: _topazPoints,
-                diamondPoints: _diamondPoints,
+                achievementPoints: _achievementPoints,
+                goldPoints: _goldPoints,
               ),
             ],
           ),

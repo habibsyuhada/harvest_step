@@ -4,20 +4,20 @@ import "../widgets/shared.dart";
 
 class ProfilePage extends StatelessWidget {
   final int displaySteps;
-  final int sapphirePoints;
+  final int energyPointsFromSteps;
   final int energyPoints;
   final String status;
-  final int topazPoints;
-  final int diamondPoints;
+  final int achievementPoints;
+  final int goldPoints;
 
   const ProfilePage({
     super.key,
     required this.displaySteps,
-    required this.sapphirePoints,
+    required this.energyPointsFromSteps,
     required this.energyPoints,
     required this.status,
-    required this.topazPoints,
-    required this.diamondPoints,
+    required this.achievementPoints,
+    required this.goldPoints,
   });
 
   @override
@@ -27,10 +27,10 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageTitleText("Profil & Pengaturan"),
+          const PageTitleText("Profile & Settings"),
           const SizedBox(height: 8),
           const Text(
-            "Lihat ringkasan semua point, status, dan preferensi.",
+            "View summary of all points, status, and preferences.",
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 16),
@@ -69,23 +69,23 @@ class ProfilePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionHeader(
-                  title: "Statistik",
-                  subtitle: "Data real-time dari pedometer.",
+                  title: "Statistics",
+                  subtitle: "Real-time data from pedometer.",
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: _miniStat(
-                        title: "Langkah",
+                        title: "Steps",
                         value: "$displaySteps",
                         icon: Icons.directions_walk_rounded,
                       ),
                     ),
                     Expanded(
                       child: _miniStat(
-                        title: "Saphire",
-                        value: "$sapphirePoints",
+                        title: "Energy",
+                        value: "$energyPointsFromSteps",
                         icon: Icons.bolt_rounded,
                       ),
                     ),
@@ -110,7 +110,7 @@ class ProfilePage extends StatelessWidget {
               children: [
                 const SectionHeader(
                   title: "Point progress",
-                  subtitle: "Semua point dari tracker kamu.",
+                  subtitle: "All points from your tracker.",
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -125,21 +125,21 @@ class ProfilePage extends StatelessWidget {
                     ),
                     _pointBadge(
                       color: Colors.blue.shade50,
-                      label: "Saphire",
-                      value: sapphirePoints,
-                      icon: Icons.water_drop_rounded,
+                      label: "Energy",
+                      value: energyPointsFromSteps,
+                      icon: Icons.bolt_rounded,
                     ),
                     _pointBadge(
                       color: Colors.yellow.shade50,
-                      label: "Topaz",
-                      value: topazPoints,
+                      label: "Achievement",
+                      value: achievementPoints,
                       icon: Icons.check_circle_rounded,
                     ),
                     _pointBadge(
-                      color: Colors.lightBlue.shade50,
-                      label: "Diamond",
-                      value: diamondPoints,
-                      icon: Icons.diamond_rounded,
+                      color: Colors.amber.shade50,
+                      label: "Gold",
+                      value: goldPoints,
+                      icon: Icons.monetization_on_rounded,
                     ),
                   ],
                 ),
@@ -152,8 +152,8 @@ class ProfilePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionHeader(
-                  title: "Pengaturan",
-                  subtitle: "Penyesuaian cepat profil & notifikasi.",
+                  title: "Settings",
+                  subtitle: "Quick adjustments for profile & notifications.",
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile(
@@ -161,16 +161,16 @@ class ProfilePage extends StatelessWidget {
                   onChanged: (_) {},
                   activeThumbColor: Colors.teal,
                   activeTrackColor: Colors.teal.withValues(alpha: 0.25),
-                  title: const Text("Notifikasi pencapaian harian"),
-                  subtitle: const Text("Kirim reminder pas target tercapai."),
+                  title: const Text("Daily achievement notifications"),
+                  subtitle: const Text("Send reminder when target is reached."),
                 ),
                 SwitchListTile(
                   value: true,
                   onChanged: (_) {},
                   activeThumbColor: Colors.teal,
                   activeTrackColor: Colors.teal.withValues(alpha: 0.25),
-                  title: const Text("Mode hemat baterai"),
-                  subtitle: const Text("Kurangi refresh animasi & sensor berat."),
+                  title: const Text("Battery saver mode"),
+                  subtitle: const Text("Reduce animation refresh & heavy sensors."),
                 ),
               ],
             ),

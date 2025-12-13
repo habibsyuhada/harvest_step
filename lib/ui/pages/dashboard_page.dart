@@ -6,9 +6,9 @@ import "../widgets/shared.dart";
 
 class DashboardPage extends StatefulWidget {
   final int displaySteps;
-  final int sapphirePoints;
-  final double sapphireProgress;
-  final int stepsToNextSapphire;
+  final int energyPointsFromSteps;
+  final double energyProgress;
+  final int stepsToNextEnergy;
   final int energyPoints;
   final int hydrationPoints;
   final String status;
@@ -25,9 +25,9 @@ class DashboardPage extends StatefulWidget {
   const DashboardPage({
     super.key,
     required this.displaySteps,
-    required this.sapphirePoints,
-    required this.sapphireProgress,
-    required this.stepsToNextSapphire,
+    required this.energyPointsFromSteps,
+    required this.energyProgress,
+    required this.stepsToNextEnergy,
     required this.energyPoints,
     required this.hydrationPoints,
     required this.status,
@@ -125,7 +125,7 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 _statTile(
                   icon: Icons.directions_walk_rounded,
-                  title: "Langkah Hari Ini",
+                  title: "Today's Steps",
                   value: widget.stepError ?? "${widget.displaySteps}",
                   color: Colors.indigo,
                   trailing: Row(
@@ -154,9 +154,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SectionHeader(
-                        title: "Air minum hari ini",
+                        title: "Today's Water Intake",
                         subtitle:
-                            "Capai ${widget.waterGoalLiters.toStringAsFixed(1)}L untuk target hidrasi harian.",
+                            "Reach ${widget.waterGoalLiters.toStringAsFixed(1)}L for daily hydration target.",
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -181,7 +181,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ),
                               ),
                               Text(
-                                "${(widget.waterGoalLiters - widget.waterIntakeLiters).clamp(0, widget.waterGoalLiters).toStringAsFixed(2)} L lagi",
+                                "${(widget.waterGoalLiters - widget.waterIntakeLiters).clamp(0, widget.waterGoalLiters).toStringAsFixed(2)} L left",
                                 style: const TextStyle(color: Colors.black54),
                               ),
                             ],
@@ -198,7 +198,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         decoration: const InputDecoration(
-                          labelText: "Tambah minum (ml)",
+                          labelText: "Add water (ml)",
                           border: OutlineInputBorder(),
                           suffixText: "ml",
                         ),
@@ -219,7 +219,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Atur cepat pakai slider (${_selectedWaterMl.toStringAsFixed(0)} ml)",
+                            "Quick adjust with slider (${_selectedWaterMl.toStringAsFixed(0)} ml)",
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           Slider(
@@ -237,7 +237,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: ElevatedButton.icon(
                               onPressed: _addSelectedWater,
                               icon: const Icon(Icons.water_drop_rounded),
-                              label: const Text("Tambahkan"),
+                              label: const Text("Add"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal,
                                 foregroundColor: Colors.white,
@@ -289,26 +289,26 @@ class _DashboardPageState extends State<DashboardPage> {
               _pointChip(
                 color: Colors.white.withValues(alpha: 0.12),
                 icon: Icons.directions_walk_rounded,
-                label: "Langkah",
-                value: widget.sapphirePoints,
+                label: "Steps",
+                value: widget.energyPointsFromSteps,
               ),
               _pointChip(
                 color: Colors.white.withValues(alpha: 0.12),
                 icon: Icons.monitor_weight_rounded,
-                label: "Berat badan",
+                label: "Body weight",
                 value: widget.bodyPoints,
               ),
               _pointChip(
                 color: Colors.white.withValues(alpha: 0.12),
                 icon: Icons.water_drop_rounded,
-                label: "Air minum",
+                label: "Water intake",
                 value: widget.hydrationPoints,
               ),
             ],
           ),
           const SizedBox(height: 14),
           Text(
-            "Saphire dari langkah",
+            "Energy from steps",
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
@@ -316,7 +316,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "${widget.displaySteps} langkah",
+            "${widget.displaySteps} steps",
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 16,
@@ -326,27 +326,28 @@ class _DashboardPageState extends State<DashboardPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: widget.sapphireProgress.clamp(0, 1),
+              value: widget.energyProgress.clamp(0, 1),
               minHeight: 10,
               color: Colors.white,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Menuju energi berikutnya",
+                "To next energy",
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               ),
+              const SizedBox(height: 4),
               Text(
-                widget.stepsToNextSapphire == 0
-                    ? "Sudah siap +1 saphire"
-                    : "${widget.stepsToNextSapphire} langkah lagi",
+                widget.stepsToNextEnergy == 0
+                    ? "Ready +1 energy"
+                    : "${widget.stepsToNextEnergy} steps left",
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -411,7 +412,7 @@ class _DashboardPageState extends State<DashboardPage> {
           const SectionHeader(
             title: "Body weight tracker",
             subtitle:
-                "Pilih target turun/naik berat. Masukkan berat hari ini untuk cek progres.",
+                "Choose target to lose/gain weight. Enter today's weight to check progress.",
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<WeightGoalDirection>(
@@ -443,7 +444,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
             decoration: const InputDecoration(
-              labelText: "Berat hari ini (kg)",
+              labelText: "Today's weight (kg)",
               border: OutlineInputBorder(),
             ),
             textInputAction: TextInputAction.done,
@@ -462,7 +463,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   vertical: 14,
                 ),
               ),
-              child: const Text("Catat"),
+              child: const Text("Record"),
             ),
           ),
           const SizedBox(height: 12),
@@ -479,7 +480,7 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 12),
           if (widget.weightEntries.isEmpty)
             const Text(
-              "Belum ada log berat.",
+              "No weight log yet.",
               style: TextStyle(color: Colors.black54),
             )
           else
@@ -487,7 +488,7 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Riwayat terakhir",
+                  "Recent history",
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
